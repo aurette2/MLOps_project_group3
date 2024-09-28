@@ -1,4 +1,6 @@
 
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 import os
 from dotenv import load_dotenv 
@@ -16,37 +18,37 @@ class BlipMed:
         self.default_indication = INDICATION
         self.max_lenght = 1024
     
-    def generate_report(self, img_path, my_indication=None):
+    def generate_report(self, image, my_indication=None):
         
         # process the inputs
         text_input = 'indication: ' + (self.default_indication if my_indication is None else my_indication)
         inputs = self.processor(
-            images=Image.open(img_path), 
+            images=image, 
             text=text_input,
             return_tensors="pt"
         )
         
         # generate an entire radiology report
         output = self.model.generate(**inputs,max_length=self.max_lenght)
-        report = self.processor.decode(output[0], skip_special_tokens=True)
+        report = self.processor.decode(output[0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
         
         return report
     
-if __name__ == "__main__":
-    load_dotenv()
-    IMAGE_BASE_PATH = os.getenv('IMAGE_BASE_PATH')
-    blipMed = BlipMed()
+# if __name__ == "__main__":
+#     load_dotenv()
+#     IMAGE_BASE_PATH = os.getenv('IMAGE_BASE_PATH')
+#     blipMed = BlipMed()
 
-    if IMAGE_BASE_PATH is None:
-        raise ValueError("The image path (IMAGE_BASE_PATH) is not defined. Check your .env file.")
+#     if IMAGE_BASE_PATH is None:
+#         raise ValueError("The image path (IMAGE_BASE_PATH) is not defined. Check your .env file.")
 
-    image_path = os.path.join(IMAGE_BASE_PATH, 's50021863.jpg')
+#     image_path = os.path.join(IMAGE_BASE_PATH, 's50021863.jpg')
 
-    if not os.path.exists(image_path):
-        raise FileNotFoundError(f"The image {image_path} could not be found.")
+#     if not os.path.exists(image_path):
+#         raise FileNotFoundError(f"The image {image_path} could not be found.")
     
-    report = blipMed.generate_report(image_path)
-    print(report)
+#     report = blipMed.generate_report(image_path)
+#     print(report)
     
     
 
