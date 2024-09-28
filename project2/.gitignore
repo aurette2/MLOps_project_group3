@@ -149,3 +149,4 @@ env_seg/
 # Ignore the model
 /modelops/unet_models
 ../.DS_Store
+.DS_Store

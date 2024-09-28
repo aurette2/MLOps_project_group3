@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from pydantic import BaseModel
 
-from auth import (
+from app.auth import (
     authenticate_user,
     create_access_token,
     ACCESS_TOKEN_EXPIRE_MINUTES,
@@ -11,7 +11,7 @@ from auth import (
     oauth2_scheme
 )
 # from model import predictByPath, showPredictsById, show_predicted_segmentations, evaluate
-from project2.backend.model import Unet
+from app.model import Unet
 from dotenv import load_dotenv
 
 # Load the environment variables from the .env file
