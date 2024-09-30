@@ -1,5 +1,8 @@
 # Use an official Python image as a base
-FROM python:3.12
+FROM python:3.11-slim
+
+# Use an official Python image as a base
+# FROM python:3.12
 
 # Set the working directory in the container
 WORKDIR /app
@@ -8,12 +11,11 @@ WORKDIR /app
 COPY /requirements.txt .
 
 # Install the required Python packages
-RUN pip install --upgrade -r requirements.txt
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 COPY .env /app/
 # Initialize DVC (to avoid the "Not inside a DVC repo" error)
-# RUN dvc init --no-scm
-RUN cd dataops
+RUN dvc init --no-scm
 
 # Set up environment variables 
 ENV AZURE_STORAGE_ACCOUNT=$AZURE_STORAGE_ACCOUNT
@@ -27,6 +29,12 @@ RUN dvc pull
 # Copy the entire project directory into the container
 COPY /backend/app /app
 
+# Copy the entire dataops folder into the app
+COPY /dataops/ /dataops
+
+# Set the environment variable for the data path
+ENV DATA_FOR_DRIFT_PATH="/dataops/data/"
+
 # Expose the ports for FastAPI (8000) and Streamlit (8501)
 EXPOSE 8000
 EXPOSE 8501
@@ -38,20 +46,20 @@ ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 # Copy the .env file to the container
 # COPY .env .env
 # COPY /backend/app/starter_code.sh /app
-COPY /frontend/app.py /app
+COPY /frontend/ /app
 
 # # Make the script executable
-# RUN chmod +x /app/starter_code.sh
+RUN chmod +x /app/starter_code.sh
 
 # # Run the FastAPI app using the built-in fastapi run command
-# CMD ["./starter_code.sh"]
+CMD ["./starter_code.sh"]
 
 # Generate a SECRET_KEY and export it
-RUN SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") && \
-    export SECRET_KEY && \
-    echo "Generated SECRET_KEY: $SECRET_KEY"
+# RUN SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") && \
+#     export SECRET_KEY && \
+#     echo "Generated SECRET_KEY: $SECRET_KEY"
 
 
 # Run the FastAPI app using the built-in fastapi run command
 # CMD ["fastapi", "run", "/app/controller.py", "--host","0.0.0.0", "--port", "8000"]
-CMD ["uvicorn", "controller:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["uvicorn", "controller:app", "--host", "0.0.0.0", "--port", "8000" "&&", "Streamlit", "run", "test.py"]
