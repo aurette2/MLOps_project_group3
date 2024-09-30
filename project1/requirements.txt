@@ -2,12 +2,15 @@ streamlit
 fastapi
 fastapi[standard] 
 uvicorn[standard]
+uvicorn
 dvc 
 dvc[azure]
+mlflow
+mlflow[azure]
 azure-storage-blob
 pyjwt
 passlib
-
+pytest
 pillow==10.4.0
 transformers==4.45.1
 python-dotenv==1.0.1

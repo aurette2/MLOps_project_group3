@@ -1,6 +1,0 @@
-outs:
-- md5: cb4edccd04dbc7e149ae2b7a4699e174.dir
-  size: 58565233
-  nfiles: 2303
-  hash: md5
-  path: mimic_dset

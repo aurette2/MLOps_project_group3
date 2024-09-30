@@ -4,3 +4,4 @@ mimic_dset/
 .dvc/cache
 .dvc/tmp
 .DS_Store
+data
