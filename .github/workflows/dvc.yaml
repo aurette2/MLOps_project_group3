@@ -13,9 +13,22 @@ jobs:
       - name: Install DVC and dependencies
         run: |
           pip install dvc[azure]
-      - name: Pull data from DVC
+      - name: Pull data from DVC for project 1
         run: |
+          cd project1/dataops
+          dvc remote add -d azure-remote azure://datasets/
+          export AZURE_STORAGE_ACCOUNT=${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          export AZURE_STORAGE_KEY=${{ secrets.AZURE_STORAGE_KEY }}
           dvc pull
-      - name: Verify DVC Data
+      - name: Verify DVC Data for project 1
+        run: |
+          dvc status
+      - name: Pull data from DVC for project 2
+        run: |
+          dvc remote add -d azure-remote azure://datasets/BraTS2
+          export AZURE_STORAGE_ACCOUNT=${{ secrets.AZURE_STORAGE_ACCOUNT }}
+          export AZURE_STORAGE_KEY=${{ secrets.AZURE_STORAGE_KEY }}
+          dvc pull
+      - name: Verify DVC Data for project 2
         run: |
           dvc status
