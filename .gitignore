@@ -2,4 +2,3 @@
 /project2/.venv/
 .dvc/tmp/
 .dvc/cache/
-.DS_Store

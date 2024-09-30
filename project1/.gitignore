@@ -4,3 +4,10 @@
 .DS_Store
 .env
 env_repports
+
+
+.env
+env_repports
+
+# To ignore my data about drift testing
+/dataops/

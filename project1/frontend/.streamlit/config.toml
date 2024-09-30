@@ -1,0 +1,9 @@
+[theme]
+base="light"
+
+
+primaryColor = "#1c83e1"  # Choose any color you prefer for buttons or accents
+backgroundColor = "#ffffff"  # Ensure background stays white
+secondaryBackgroundColor = "#f0f2f6"  # Optional, for a different secondary color
+textColor = "#000000"  # Text remains black
+font = "sans serif"  # Choose a preferred font

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, status, Depends 
+from fastapi.responses import HTMLResponse
 from datetime import datetime, timedelta, timezone
 from typing import Union
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -14,13 +15,17 @@ import jwt
 from jwt import PyJWTError
 import sys
 import os
+
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from modelblip import BlipMed
+from etl_report import generate_drift_report
 
 load_dotenv()
 # JWT settings 
 SECRET_KEY = os.getenv('SECRET_KEY')  # Replace with your own secret key
+DATA_FOR_DRIFT_PATH=os.getenv("DATA_FOR_DRIFT_PATH")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -135,6 +140,31 @@ async def question_image(question: str, file: UploadFile = File(...), token: str
         image = Image.open(io.BytesIO(image_data)) 
        
         return{"question": question}
+        
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.get('/monitoring')
+async def monitoring():
+
+    try:
+        # report_html_path = "custom_report.html"
+        
+        report_html_path = "../../dataops/data/drift_report.html"
+
+        # Check if the file exists
+        if os.path.exists(report_html_path):
+            # Read the HTML file and return as a response
+            with open(report_html_path, "r") as f:
+                html_content = f.read()
+            return HTMLResponse(content=html_content)
+        else:
+            # Generate It from data / This should take time
+            
+            generate_drift_report()
+            with open(report_html_path, "r") as f:
+                html_content = f.read()
+            return HTMLResponse(content=html_content)
         
     except Exception as e:
         return {"error": str(e)}
