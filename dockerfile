@@ -16,7 +16,7 @@ RUN pip install --upgrade -r requirements.txt
 COPY .env /app/
 
 # Copy the entire project directory into the container
-COPY /backend/app /app/
+COPY /backend/app/ /app/
 COPY /frontend/ /app/
 COPY /dataops/ /app/
 COPY /dataops/.dvc .dvc
@@ -43,4 +43,4 @@ RUN SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") && \
 
 ENV SECRET_KEY=$SECRET_KEY
 
-CMD /bin/bash -c "fastapi run controller.py --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run test.py --server.address 0.0.0.0 --server.port 8501"
+CMD /bin/bash -c "fastapi run /app/controller.py --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run /app/test.py --server.address 0.0.0.0 --server.port 8501"
