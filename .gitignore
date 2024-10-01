@@ -1,4 +1,9 @@
-/project1/.venv/
-/project2/.venv/
-.dvc/tmp/
-.dvc/cache/
+/df_val.csv
+/mimic_dset/
+.dvc/config
+.DS_Store
+.env
+env_repports
+
+# To ignore my data about drift testing
+/dataops/

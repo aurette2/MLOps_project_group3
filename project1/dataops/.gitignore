@@ -1,7 +1,0 @@
-df_val.csv
-mimic_dset/
-.dvc/config
-.dvc/cache
-.dvc/tmp
-.DS_Store
-data
