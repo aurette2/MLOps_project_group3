@@ -1,5 +1,5 @@
 
-from backend.app.config import IMG_SIZE, VOLUME_SLICES, VOLUME_START_AT
+from config import IMG_SIZE, VOLUME_SLICES, VOLUME_START_AT
 from dotenv import load_dotenv
 
 import os

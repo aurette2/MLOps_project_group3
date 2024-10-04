@@ -18,12 +18,6 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 # Copy the entire project directory into the container
 COPY /backend/app /app
 
-# Set up environment variables for Azure authentication
-# These variables should be set as secrets in CI/CD pipelines
-# or Docker compose files, not hardcoded in the Dockerfile
-ENV AZURE_STORAGE_ACCOUNT=<your-azure-storage-account>
-ENV AZURE_STORAGE_KEY=<your-azure-storage-key>
-
 # Pull the dataset tracked by DVC
 RUN dvc pull
 
@@ -44,4 +38,4 @@ COPY /frontend/app.py /app
 RUN chmod +x /app/starter_code.sh
 
 # Run the FastAPI app using the built-in `fastapi run` command
-CMD ["./starter_code.sh"]
+CMD ["sh", "-c", "uvicorn controller:app --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run app.py --server.address 0.0.0.0 --server.port 8501"]
