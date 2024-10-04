@@ -1,0 +1,7 @@
+/df_val.csv
+/mimic_dset/
+.dvc/config
+.DS_Store
+.env
+env_repports
+.venv/

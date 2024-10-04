@@ -1,5 +1,20 @@
+dvc==3.55.2
+kaggle==1.6.17
+python-dotenv==1.0.1
 streamlit 
 fastapi
 fastapi[standard] 
 dvc 
+dvc[azure]
 azure-storage-blob
+
+# Requirements for data and model training process
+opencv-python==4.10.0.84
+pandas==2.2.3
+matplotlib==3.9.2
+scikit-image==0.24.0
+nibabel==5.2.1
+tensorflow==2.17.0
+tensorflow-io-gcs-filesystem==0.37.1
+scikit-learn==1.5.2
+graphviz==0.20.3
