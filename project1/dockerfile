@@ -1,9 +1,6 @@
 # Use an official Python image as a base
-FROM python:3.11-slim
+FROM python:3.12
 
-# Use an official Python image as a base
-# FROM python:3.12
-RUN mkdir app/
 # Set the working directory in the container
 WORKDIR /app
     
@@ -12,8 +9,6 @@ COPY /requirements.txt .
 
 # Install the required Python packages
 RUN pip install --upgrade -r requirements.txt
-
-COPY .env .
 
 # Copy the entire project directory into the container
 COPY /backend/app/ .
@@ -43,7 +38,6 @@ RUN SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") && \
 
 ENV SECRET_KEY=$SECRET_KEY
 
-RUN ls -la >> build.log
 
 # CMD /bin/bash -c "fastapi run controller.py --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run test.py --server.address 0.0.0.0 --server.port 8501"
-CMD /bin/bash -c "uvicorn controller:app --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run test.py --server.address 0.0.0.0 --server.port 8501"
+CMD ["sh", "-c", "uvicorn controller:app --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run app.py --server.address 0.0.0.0 --server.port 8501"]

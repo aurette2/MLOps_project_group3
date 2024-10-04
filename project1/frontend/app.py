@@ -20,9 +20,10 @@ if "screenstate" not in st.session_state:
     st.session_state.screenstate = {
         "login_page": True,
         "logout": False,
-        "generate_reports": False,
+        "generate_reports": False,  
+        "visual_qa": False,
+        "drift_detection": False,
     }
-
 
 # Function to authenticate user and get token
 def authenticate(username, password):
@@ -103,14 +104,12 @@ def wait_for_token():
 if "token" not in st.session_state:
     st.session_state.token = None
     # Trigger token fetch from localStorage
-
     wait_for_token()
 
 # Check if the token exists after fetching
 if st.session_state.token:
     # User is authenticated, proceed with other logic
     show_temporary_success_message(f"You are authenticated.")
-
 
 # Login form
 if st.session_state.screenstate["login_page"]:
@@ -125,27 +124,82 @@ if st.session_state.screenstate["login_page"]:
     if login_button:
         # Simulate token generation after login
         token = authenticate(username, password)
-        
-    
         if token:
             local_storage_set("token", token)  # Store token in localStorage
             st.session_state.token = token  # Store the token in session state
             st.session_state.screenstate["login_page"] = False  # Hide login page
             st.session_state.screenstate["generate_reports"] = True  # Show report generator
-            st.session_state.screenstate["logout"] = True  # Show Logout boutton
+            st.session_state.screenstate["logout"] = True  # Show Logout button
             st.success(f"Logged in successfully! Token: {token}")
             
             # Rerun the app to apply the state change
             st.rerun()
 
+# Sidebar content with background color
+if st.session_state.token:
+    st.markdown(
+        """
+        <style>
+        .css-1v3fvcr {
+            background-color: #00B4D8 !important;
+        }
+        .css-1q8dd3e {
+            color: #FFF !important;
+        }
+        .stButton>button {
+            background-color: #FFF;
+            color: #00B4D8;
+        }
+        </style>
+        """, unsafe_allow_html=True
+    )
+    
+    def section(label):
+        button_html = f"""
+            <div style="width: 100%;">
+                <button style="width: 100%; background-color: #00B4D8; color: white; border: none; padding: 10px; border-radius: 5px; font-size: 16px;">
+                    {label}
+                </button>
+            </div>
+            """
+        return button_html
+    
+    # Sidebar for navigation
+    with st.sidebar:
 
+        st.write("## Main Tasks")
+        if st.button("Report Generation"):
+            st.session_state.screenstate["generate_reports"] = True
+            st.session_state.screenstate["visual_qa"] = False
+            st.session_state.screenstate["drift_detection"] = False
+        
+        if st.button("Visual Question Answering"):
+            st.session_state.screenstate["generate_reports"] = False
+            st.session_state.screenstate["visual_qa"] = True
+            st.session_state.screenstate["drift_detection"] = False
 
-# ____________________________________________________________________________________________________________________________    
+        st.write("## Secondary Tasks")
+        if st.button("Visualize Drift Detection"):
+            st.session_state.screenstate["generate_reports"] = False
+            st.session_state.screenstate["visual_qa"] = False
+            st.session_state.screenstate["drift_detection"] = True
 
-# Streamlit App
+        # Logout button at the bottom
+        st.markdown("<div style='position: fixed; bottom: 0; width: 100%;'>", unsafe_allow_html=True)
+        if st.button("Logout"):
+            local_storage_remove("token")
+            st.session_state.token = None
+            st.session_state.screenstate["login_page"] = True  # Show login page
+            st.session_state.screenstate["generate_reports"] = False  # Hide report generator
+            st.session_state.screenstate["logout"] = False  # Hide Logout button
+            st.session_state.screenstate["visual_qa"] = False
+            st.session_state.screenstate["drift_detection"] = False
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+
+# Main content
 st.title("Radiology Report Generator")
-
-
 
 # Show the report generation page if logged in
 if st.session_state.screenstate["generate_reports"]:
@@ -179,15 +233,51 @@ if st.session_state.screenstate["generate_reports"]:
                 except Exception as e:
                     st.error(f"An error occurred: {str(e)}")
 
+# Visual Question Answering page
+if st.session_state.screenstate["visual_qa"]:
+    st.write("Visual Question Answering feature coming soon!")
 
-# Logout button to clear token
-if st.session_state.screenstate["logout"]:
-    if st.button("Logout"):
-        local_storage_remove("token")
-        st.session_state.token = None
+# Drift Detection page
+# if st.session_state.screenstate["drift_detection"]:
+    
+#     st.write("Drift Detection Visualization feature coming soon!")
+# Drift Detection page
+if st.session_state.screenstate["drift_detection"]:
+    st.write("Drift Detection Visualization")
 
-        st.session_state.screenstate["login_page"] = True  # Hide login page
-        st.session_state.screenstate["generate_reports"] = False  # Show report generator
-        st.session_state.screenstate["logout"] = False  # Show Logout boutton
-        st.rerun()
+    # Call the FastAPI monitoring endpoint
+    try:
+        response = requests.get("http://127.0.0.1:8000/monitoring")  # URL for FastAPI monitoring route
+        
+        if response.status_code == 200:
+            # Display the HTML content
+            html_content = response.text
+
+            st.components.v1.html(html_content, height=1000, scrolling=True)
+        else:
+            st.error(f"Failed to load drift detection report. Status code: {response.status_code}")
+    
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+
+
+
+
+
+
+st.markdown(
+    """
+    <style>
+    .sidebar .stButton > button {
+        width: 100%;
+        background-color: #00B4D8;  /* Custom background color */
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 16px;
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
 

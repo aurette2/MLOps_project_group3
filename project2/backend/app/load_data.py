@@ -1,6 +1,4 @@
-# from kaggle.api.kaggle_api_extended import KaggleApi
 from dotenv import load_dotenv
-
 import os
 import cv2
 import random
@@ -31,8 +29,6 @@ from tensorflow.keras.models import *
 from tensorflow.keras.layers import *
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, TensorBoard
-# from tensorflow.keras.layers.experimental import preprocessing
-# from tensorflow.keras.layers import preprocessing
 
 load_dotenv()
 

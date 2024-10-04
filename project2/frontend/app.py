@@ -1,103 +1,175 @@
 import streamlit as st
 import requests
+import streamlit.components.v1 as components
 from PIL import Image
 import os
 
-# Define the FastAPI backend URL (adjust this based on where your API is hosted)
-API_URL = "http://localhost:8000"  # Change this if hosted elsewhere
+# Base URL of FastAPI backend
+BASE_URL = "http://localhost:8000"  # Update with your backend URL
 
-# Token placeholder for authenticated requests
-token = None
+# Streamlit App
+st.set_page_config(page_title="Medical Image Segmentation", layout="wide")
 
-# Function to login and get JWT token
+# Initialize session state for authentication and login status
+if 'access_token' not in st.session_state:
+    st.session_state.access_token = None
+
+if 'is_logged_in' not in st.session_state:
+    st.session_state.is_logged_in = False
+
+# Authentication function
 def login(username, password):
-    response = requests.post(f"{API_URL}/token", data={"username": username, "password": password})
-    if response.status_code == 200:
-        return response.json().get("access_token")
-    else:
-        st.error("Login failed! Please check your username and password.")
-        return None
+    try:
+        response = requests.post(f"{BASE_URL}/token", data={"username": username, "password": password})
+        if response.status_code == 200:
+            st.session_state.access_token = response.json().get('access_token')
+            st.session_state.username = username
+            st.session_state.is_logged_in = True
+            st.success(f"Welcome, {username}!")
+        else:
+            st.error("Invalid username or password")
+    except Exception as e:
+        st.error(f"Error logging in: {e}")
 
-# Function to show predicted segmentations (POST request)
-def show_predicted_segmentations(samples_list, slice_to_plot):
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.post(f"{API_URL}/showPredictSegmented/", json={"samples_list": samples_list, "slice_to_plot": slice_to_plot}, headers=headers)
-    if response.status_code == 200:
-        st.success(response.json().get("message"))
-    else:
-        st.error("Error in fetching predicted segmentations.")
+# Logout function
+def logout():
+    st.session_state.access_token = None
+    st.session_state.is_logged_in = False
+    st.success("Logged out successfully!")
 
-# Function to evaluate the model
-def evaluate_model():
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.post(f"{API_URL}/evaluate", headers=headers)
-    if response.status_code == 200:
-        metrics = response.json()
-        for key, value in metrics.items():
-            st.write(f"{key}: {value}")
-    else:
-        st.error("Error in evaluating the model.")
-
-# Function to predict brain segmentation
-def predict_segmentation(case_path, case):
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.post(f"{API_URL}/predict/", json={"case_path": case_path, "case": case}, headers=headers)
-    if response.status_code == 200:
-        st.success("Prediction successful!")
-        prediction = response.json().get("prediction")
-        st.write(f"Prediction: {prediction}")
-    else:
-        st.error("Error in making the prediction.")
+# Check if user is authenticated
+def is_authenticated():
+    return st.session_state.access_token is not None
 
 # Function to show drift (placeholder)
 def show_drift():
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(f"{API_URL}/showdrift/", headers=headers)
+    headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
+    response = requests.get(f"{BASE_URL}/showdrift/", headers=headers)
     if response.status_code == 200:
         st.success(response.json().get("message"))
     else:
         st.error("Error in fetching drift status.")
 
-# Streamlit UI components
+# Function to send authenticated request
+def authenticated_request(endpoint, method="GET", params=None, json=None):
+    headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
+    if method == "GET":
+        response = requests.get(f"{BASE_URL}{endpoint}", headers=headers, params=params)
+    elif method == "POST":
+        response = requests.post(f"{BASE_URL}{endpoint}", headers=headers, json=json)
+    return response
 
-st.title("Brain Segmentation and Evaluation Dashboard")
+# ---- MAIN APP LOGIC ----
 
-# Login section
-st.header("Login to Access the API")
-username = st.text_input("Username")
-password = st.text_input("Password", type="password")
+# Only show login page if the user isn't authenticated yet
+if not is_authenticated() and not st.session_state.is_logged_in:
+    st.title("Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        login(username, password)
+        # Rerun the app to apply the state change
+        st.rerun()
 
-if st.button("Login"):
-    token = login(username, password)
-    if token:
-        st.success("Login successful!")
-    else:
-        st.error("Login failed!")
+# If authenticated, show navigation and operations
+if is_authenticated() and st.session_state.is_logged_in:
+    # Sidebar for navigation
+    st.sidebar.title("Navigation")
+    page = st.sidebar.radio("Go to", ["Welcome", "Segmentation Prediction", "Model Evaluation", "Drift Detection", "Logout"])
+    # # Sidebar for navigation
+    # st.sidebar.title("Navigation")
+    # page = st.sidebar.selectbox(
+    #     "Select a page:",
+    #     ["Welcome", "Segmentation Prediction", "Model Evaluation", "Drift Detection", "Logout"]
+    # )
 
-# Segmentation section
-if token:
-    st.header("Predict Brain Segmentation")
-    case_path = st.text_input("Case Path (e.g., /path/to/case)")
-    case = st.text_input("Case ID (e.g., BraTS2020)")
-    if st.button("Predict Segmentation"):
-        predict_segmentation(case_path, case)
+    # Welcome Page
+    if page == "Welcome":
+        st.title(f"Welcome, {st.session_state.username}!")
+        st.subheader("Available Operations")
+        st.write("- **Segmentation Prediction**: Upload a medical image and predict segmentation.")
+        st.write("- **Model Evaluation**: Evaluate the model on the test dataset.")
+        st.write("- **Drift Detection**: Check for any data drift.")
+        st.write("- **Logout**: End your session.")
 
-# Evaluation section
-if token:
-    st.header("Evaluate the Model")
-    if st.button("Evaluate Model"):
-        evaluate_model()
+    # Segmentation Prediction Page
+    if page == "Segmentation Prediction":
+        st.title("Segmentation Prediction")
+        st.write("Upload a medical image case and make segmentation predictions.")
 
-# Show Predicted Segmentations section
-if token:
-    st.header("Show Predicted Segmentations")
-    samples_list = st.text_input("Samples List (comma separated, e.g., sample1,sample2)").split(",")
-    slice_to_plot = st.number_input("Slice to Plot", min_value=0, max_value=100, value=60)
-    if st.button("Show Predicted Segmentations"):
-        show_predicted_segmentations(samples_list, slice_to_plot)
+        # Upload image case
+        uploaded_file = st.file_uploader("Choose a case image", type=["png", "jpg", "jpeg", "nii"])
+        case_id = st.text_input("Enter Case ID (numeric)", "0")
 
-# Show Drift section
-if token:
-    st.header("Show Drift Status")
-    if st.button("Check Drift"):
-        show_drift()
+        if uploaded_file is not None:
+            # Display uploaded image
+            image = Image.open(uploaded_file)
+            st.image(image, caption="Uploaded Image", use_column_width=True)
+
+            # Save the uploaded image locally
+            case_path = os.path.join("data", uploaded_file.name)
+            with open(case_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            # Prediction
+            if st.button("Predict Segmentation"):
+                response = authenticated_request(f"/predict/", method="POST", json={"case_path": case_path, "case": case_id})
+                if response.status_code == 200:
+                    st.success("Prediction successful")
+                    st.write(response.json()["prediction"])
+
+                    # Display Predictions by Case ID
+                    st.subheader("View Predictions by Case ID")
+                    try:
+                        numcase = int(st.text_input("Enter the Case ID (integer) for prediction results", case_id))
+                        start_slice = st.slider("Select Start Slice", min_value=0, max_value=100, value=60)
+                        if st.button("Show Predictions by ID"):
+                            show_predicts_response = authenticated_request(f"/showPredictsByID/", method="GET", params={"numcase": numcase, "start_slice": start_slice})
+                            if show_predicts_response.status_code == 200:
+                                st.success(f"Predictions by Case ID {numcase} displayed")
+                            else:
+                                st.error("Failed to show predictions by ID")
+                    except ValueError:
+                        st.error("Please enter a valid integer for Case ID")
+
+                    # Display Segmented Predictions
+                    st.subheader("View Predicted Segmentations")
+                    samples_list_input = st.text_area("Enter list of samples (comma-separated values)")
+                    try:
+                        samples_list = [int(item.strip()) for item in samples_list_input.split(',') if item.strip().isdigit()]
+                        slice_to_plot = st.slider("Select Slice to Plot", min_value=0, max_value=100, value=50)
+                        if st.button("Show Predicted Segmentations"):
+                            show_segmented_response = authenticated_request(f"/showPredictSegmented/", method="POST", json={"samples_list": samples_list, "slice_to_plot": slice_to_plot})
+                            if show_segmented_response.status_code == 200:
+                                st.success("Predicted segmentations displayed")
+                            else:
+                                st.error("Failed to show predicted segmentations")
+                    except ValueError:
+                        st.error("Please provide a valid list of samples")
+                else:
+                    st.error("Failed to predict segmentation")
+
+    # Model Evaluation Page
+    if page == "Model Evaluation":
+        st.title("Model Evaluation")
+        st.write("Evaluate the segmentation model on the test dataset.")
+        
+        if st.button("Evaluate Model"):
+            response = authenticated_request("/evaluate/", method="POST")
+            if response.status_code == 200:
+                st.subheader("Model Evaluation Metrics")
+                components.html(response.text.replace("<table>", '<table style="color:white;">'), height=400, scrolling=True)
+            else:
+                st.error("Failed to evaluate model")
+
+    # Drift Detection Page
+    if page == "Drift Detection":
+        st.title("Drift Detection")
+        st.write("Monitor the model for data drift.")
+
+        if st.button("Check for Drift"):
+            show_drift()
+
+    # Logout page
+    if page == "Logout":
+        logout()

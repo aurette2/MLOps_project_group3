@@ -36,3 +36,4 @@ tensorflow-io-gcs-filesystem #==0.37.1
 graphviz #==0.20.3
 python-multipart
 bcrypt==3.1.7
+evidently==0.4.38

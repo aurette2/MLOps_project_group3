@@ -121,7 +121,7 @@ async def generate_report(file: UploadFile = File(...), indication: str = None, 
         return {"error": str(e)}
    
     
-@app.get('/show_drift')
+@app.get('/monitoring')
 async def show_drift(token: str = Depends(oauth2_scheme)):
     payload = decode_token(token)
     role = payload.get("role")
@@ -129,28 +129,10 @@ async def show_drift(token: str = Depends(oauth2_scheme)):
     if role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
     
-    return{"Only Admin": "Welcome to MLOPS DATA drift"}
-
-
-@app.post('/vqa')
-async def question_image(question: str, file: UploadFile = File(...), token: str = Depends(oauth2_scheme) ):
-    # username = decode_token(token)
-    try:
-        image_data = await file.read()  
-        image = Image.open(io.BytesIO(image_data)) 
-       
-        return{"question": question}
-        
-    except Exception as e:
-        return {"error": str(e)}
-    
-@app.get('/monitoring')
-async def monitoring():
-
     try:
         # report_html_path = "custom_report.html"
         
-        report_html_path = "../../dataops/data/drift_report.html"
+        report_html_path = DATA_FOR_DRIFT_PATH + "drift_report.html"
 
         # Check if the file exists
         if os.path.exists(report_html_path):
@@ -168,7 +150,19 @@ async def monitoring():
         
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post('/vqa')
+async def question_image(question: str, file: UploadFile = File(...), token: str = Depends(oauth2_scheme) ):
+    # username = decode_token(token)
+    try:
+        image_data = await file.read()  
+        image = Image.open(io.BytesIO(image_data)) 
+       
+        return{"question": question}
         
+    except Exception as e:
+        return {"error": str(e)}
 
     
 
