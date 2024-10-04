@@ -1,5 +1,0 @@
-streamlit 
-fastapi
-fastapi[standard] 
-dvc 
-azure-storage-blob

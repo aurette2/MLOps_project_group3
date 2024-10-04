@@ -1,4 +1,7 @@
-/project-1/.venv/
-/project-2/.venv/
-.dvc/tmp/
-.dvc/cache/
+/df_val.csv
+/mimic_dset/
+.dvc/config
+.DS_Store
+.env
+env_repports
+.venv/
