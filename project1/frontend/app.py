@@ -130,7 +130,7 @@ if st.session_state.screenstate["login_page"]:
             st.session_state.screenstate["login_page"] = False  # Hide login page
             st.session_state.screenstate["generate_reports"] = True  # Show report generator
             st.session_state.screenstate["logout"] = True  # Show Logout button
-            st.success(f"Logged in successfully! Token: {token}")
+            # st.success(f"Logged in successfully!")
             
             # Rerun the app to apply the state change
             st.rerun()
@@ -225,8 +225,33 @@ if st.session_state.screenstate["generate_reports"]:
                     if response.status_code == 200:
                         data = response.json()
                         report = data.get("report", "No report generated.")
-                        st.success("Report generated successfully!")
-                        st.write(f"**Report:** {report}")
+                        # Split the report into sections based on the keywords "Indication", "Finding", and "Impression"
+                        if report:
+                            indications = ""
+                            findings = ""
+                            impressions = ""
+
+                            # Parse the report
+                            if "indication" in report.lower():
+                                indications = report.split("findings")[0].strip()
+                                findings_impressions = report.split("findings")[1].strip()
+                                if "impression" in findings_impressions.lower():
+                                    findings = findings_impressions.split("impression")[0].strip()
+                                    impressions = findings_impressions.split("impression")[1].strip()
+
+                            # Display the formatted report
+                            st.success("Report generated successfully!")
+                            
+                            if indications:
+                                st.markdown(f"**Indication**:\n{indications}")
+                            
+                            if findings:
+                                st.markdown(f"**Finding**:\n{findings}")
+                            
+                            if impressions:
+                                st.markdown(f"**Impression**:\n{impressions}")
+                        # st.success("Report generated successfully!")
+                        # st.write(f"**Report**:\n {report}")
                     else:
                         st.error(f"Error generating the report. Status code: {response.status_code}")
                         st.write(response.text)  # Print the error details

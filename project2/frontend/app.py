@@ -76,12 +76,6 @@ if is_authenticated() and st.session_state.is_logged_in:
     # Sidebar for navigation
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Go to", ["Welcome", "Segmentation Prediction", "Model Evaluation", "Drift Detection", "Logout"])
-    # # Sidebar for navigation
-    # st.sidebar.title("Navigation")
-    # page = st.sidebar.selectbox(
-    #     "Select a page:",
-    #     ["Welcome", "Segmentation Prediction", "Model Evaluation", "Drift Detection", "Logout"]
-    # )
 
     # Welcome Page
     if page == "Welcome":
@@ -97,57 +91,48 @@ if is_authenticated() and st.session_state.is_logged_in:
         st.title("Segmentation Prediction")
         st.write("Upload a medical image case and make segmentation predictions.")
 
-        # Upload image case
-        uploaded_file = st.file_uploader("Choose a case image", type=["png", "jpg", "jpeg", "nii"])
-        case_id = st.text_input("Enter Case ID (numeric)", "0")
+        # Upload flair and t1ce files
+        uploaded_flair = st.file_uploader("Choose a FLAIR image (filename should end with _flair.nii)", type=["nii"])
+        uploaded_t1ce = st.file_uploader("Choose a T1CE image (filename should end with _t1ce.nii)", type=["nii"])
 
-        if uploaded_file is not None:
-            # Display uploaded image
-            image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Image", use_column_width=True)
-
-            # Save the uploaded image locally
-            case_path = os.path.join("data", uploaded_file.name)
-            with open(case_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+        if uploaded_flair and uploaded_t1ce:
+            # Display uploaded images
+            st.write("FLAIR Image:", uploaded_flair.name)
+            st.write("T1CE Image:", uploaded_t1ce.name)
 
             # Prediction
-            if st.button("Predict Segmentation"):
-                response = authenticated_request(f"/predict/", method="POST", json={"case_path": case_path, "case": case_id})
+            if st.button("View Predictions"):
+                files = [
+                    ("files", (uploaded_flair.name, uploaded_flair, uploaded_flair.type)),
+                    ("files", (uploaded_t1ce.name, uploaded_t1ce, uploaded_t1ce.type))
+                ]
+                response = authenticated_request("/predictbypath/", method="POST", files=files)
                 if response.status_code == 200:
                     st.success("Prediction successful")
-                    st.write(response.json()["prediction"])
-
-                    # Display Predictions by Case ID
-                    st.subheader("View Predictions by Case ID")
-                    try:
-                        numcase = int(st.text_input("Enter the Case ID (integer) for prediction results", case_id))
-                        start_slice = st.slider("Select Start Slice", min_value=0, max_value=100, value=60)
-                        if st.button("Show Predictions by ID"):
-                            show_predicts_response = authenticated_request(f"/showPredictsByID/", method="GET", params={"numcase": numcase, "start_slice": start_slice})
-                            if show_predicts_response.status_code == 200:
-                                st.success(f"Predictions by Case ID {numcase} displayed")
-                            else:
-                                st.error("Failed to show predictions by ID")
-                    except ValueError:
-                        st.error("Please enter a valid integer for Case ID")
-
-                    # Display Segmented Predictions
-                    st.subheader("View Predicted Segmentations")
-                    samples_list_input = st.text_area("Enter list of samples (comma-separated values)")
-                    try:
-                        samples_list = [int(item.strip()) for item in samples_list_input.split(',') if item.strip().isdigit()]
-                        slice_to_plot = st.slider("Select Slice to Plot", min_value=0, max_value=100, value=50)
-                        if st.button("Show Predicted Segmentations"):
-                            show_segmented_response = authenticated_request(f"/showPredictSegmented/", method="POST", json={"samples_list": samples_list, "slice_to_plot": slice_to_plot})
-                            if show_segmented_response.status_code == 200:
-                                st.success("Predicted segmentations displayed")
-                            else:
-                                st.error("Failed to show predicted segmentations")
-                    except ValueError:
-                        st.error("Please provide a valid list of samples")
+                    prediction = response.json().get("prediction", "No prediction returned.")
+                    st.write(f"**Prediction**: {prediction}")
                 else:
-                    st.error("Failed to predict segmentation")
+                    st.error(f"Failed to predict segmentation: {response.text}")
+
+            # Display Segmented Predictions
+            st.subheader("View Predicted Segmentations")
+            try:
+                slice_to_plot = st.slider("Select Slice to Plot", min_value=0, max_value=100, value=60)
+                if st.button("Show Predicted Segmentations"):
+                    files = [
+                        ("files", (uploaded_flair.name, uploaded_flair, uploaded_flair.type)),
+                        ("files", (uploaded_t1ce.name, uploaded_t1ce, uploaded_t1ce.type))
+                    ]
+                    show_segmented_response = authenticated_request("/showPredictSegmented/", method="POST", files=files)
+                    if show_segmented_response.status_code == 200:
+                        st.success("Predicted segmentations displayed")
+                        # You may want to show images or segmented results here
+                    else:
+                        st.error(f"Failed to show predicted segmentations: {show_segmented_response.text}")
+            except ValueError:
+                st.error("Please provide a valid list of samples")
+        else:
+            st.warning("Please upload both _flair.nii and _t1ce.nii files.")
 
     # Model Evaluation Page
     if page == "Model Evaluation":

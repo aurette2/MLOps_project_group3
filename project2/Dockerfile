@@ -4,22 +4,24 @@ FROM python:3.12
 # Set the working directory in the container
 WORKDIR /app
 
-# Install necessary system dependencies, including libGL for OpenCV
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0
-    
 # Copy the requirements file into the container
-COPY backend/requirements.txt .
+COPY /requirements.txt .
 
 # Install the required Python packages
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+RUN pip install --upgrade -r requirements.txt
 
 # Copy the entire project directory into the container
-COPY /backend/app /app
+COPY /backend/app/ .
+COPY /frontend/ .
+COPY /dataops/ .
+COPY /dataops/.dvc .dvc
+COPY .git .git
 
-# Pull the dataset tracked by DVC
+# Pull the DVC dataset
 RUN dvc pull
+
+# Set the environment variable for the data path
+ENV DATA_FOR_DRIFT_PATH="./data/"
 
 # Expose the ports for FastAPI (8000) and Streamlit (8501)
 EXPOSE 8000
@@ -29,13 +31,12 @@ EXPOSE 8501
 ENV STREAMLIT_SERVER_PORT=8501
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 
-# Copy the .env file to the container
-COPY /backend/.env .env
-COPY /backend/app/starter_code.sh /app
-COPY /frontend/app.py /app
+# Generate a SECRET_KEY and export it
+RUN SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") && \
+    export SECRET_KEY && \
+    echo "Generated SECRET_KEY: $SECRET_KEY"
 
-# Make the script executable
-RUN chmod +x /app/starter_code.sh
+ENV SECRET_KEY=$SECRET_KEY
 
-# Run the FastAPI app using the built-in `fastapi run` command
-CMD ["sh", "-c", "uvicorn controller:app --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run app.py --server.address 0.0.0.0 --server.port 8501"]
+# CMD /bin/bash -c "fastapi run controller.py --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run test.py --server.address 0.0.0.0 --server.port 8501"
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run app.py --server.address 0.0.0.0 --server.port 8501"]
