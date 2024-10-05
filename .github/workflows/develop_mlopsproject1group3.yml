@@ -31,7 +31,7 @@ jobs:
       with:
         push: true
         tags: mlopsproject1group3.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_2e61e44ce5ae44b985a7e5588bfde148 }}/mlopsproject1group3:${{ github.sha }}
-        file: ./Dockerfile
+        file: ./project1/Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
