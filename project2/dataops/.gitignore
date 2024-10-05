@@ -1,5 +1,3 @@
 brain_data/BraTS2020/
 /backend/.env
 /brain_data/
-/my_model.keras
-/brain_data
