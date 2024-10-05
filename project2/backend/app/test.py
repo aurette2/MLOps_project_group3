@@ -1,9 +1,9 @@
 
 # from backend.app.eda import DataGenerator
-from project2.backend.app.eda import DataGenerator
-from backend.app.load_data import Datasource
-from backend.app.model import Unet
-from backend.app.config import VOLUME_SLICES, VOLUME_START_AT, IMG_SIZE
+from eda import DataGenerator
+from load_data import Datasource
+from model import Unet
+from config import VOLUME_SLICES, VOLUME_START_AT, IMG_SIZE
 
 import os
 import matplotlib
@@ -15,6 +15,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
 
+VOLUME_SLICES = 100
+VOLUME_START_AT = 22
+IMG_SIZE = 128
 
 #  Test of the model 
 if __name__ == "__main__":
@@ -95,6 +98,11 @@ if __name__ == "__main__":
     unet_model.showPredictsById(case=source.test_ids[0][-3:])
     
     unet_model.showPredictsById(case=source.test_ids[5][-3:])
+    print("Hello false prediction")
+    unet_model.predictFromFiles("/Users/omer/Desktop/MLOps_project_group3/project2/dataops/brain_data/BraTSData/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/BraTS20_Training_001/BraTS20_Training_001_flair.nii", "/Users/omer/Desktop/MLOps_project_group3/project2/dataops/brain_data/BraTSData/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/BraTS20_Training_001/BraTS20_Training_001_t1ce.nii")
+    
+    print("Segmentations")
+    unet_model.show_predicted_segmentations("/Users/omer/Desktop/MLOps_project_group3/project2/dataops/brain_data/BraTSData/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/BraTS20_Training_001/BraTS20_Training_001_flair.nii", "/Users/omer/Desktop/MLOps_project_group3/project2/dataops/brain_data/BraTSData/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData/BraTS20_Training_001/BraTS20_Training_001_t1ce.nii", 60)
     
     cmap = matplotlib.colors.ListedColormap(['#440054', '#3b528b', '#18b880', '#e6d74f'])
     norm = matplotlib.colors.BoundaryNorm([-0.5, 0.5, 1.5, 2.5, 3.5], cmap.N)
