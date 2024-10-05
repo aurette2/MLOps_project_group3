@@ -1,4 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+import os
+from typing import List
+import streamlit as st
+
+from elt_report import generate_drift_report
+
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
@@ -15,7 +21,7 @@ from auth import (
 from model import Unet
 from load_data import Datasource
 from eda import DataGenerator
-from config import MODELS_DIR, DATASET_BASE_PATH
+from config import MODELS_DIR, DRIFT_BASE_PATH
 from elt_report import generate_drift_report
 app = FastAPI()
 
@@ -60,31 +66,31 @@ async def get_case(num: int = 0):
     return source.test_ids[num][-3:]
 
 # Endpoint to show predictions by ID
-@app.get("/showPredictsByID/")
-async def show_predicts_by_id(numcase: int, start_slice: int = 60, token: str = Depends(oauth2_scheme)):
-    try:
-        decode_token(token)
-        case = get_case(numcase)
-        unet_model.showPredictsById(case, start_slice)
-        return {"message": f"Predictions displayed for case: {case}"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.get("/showPredictsByID/")
+# async def show_predicts_by_id(numcase: int, start_slice: int = 60, token: str = Depends(oauth2_scheme)):
+#     try:
+#         decode_token(token)
+#         case = get_case(numcase)
+#         unet_model.showPredictsById(case, start_slice)
+#         return {"message": f"Predictions displayed for case: {case}"}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 #Endpoint to get samples_list
 @app.get("/samples_list")
 async def get_samples_list():
     return source.test_ids
 
-# Endpoint to show predicted segmented images
-@app.post("/showPredictSegmented/")
-async def show_predicted_segmentations_api(samples_list: list, slice_to_plot: int, token: str = Depends(oauth2_scheme)):
-    try:
-        decode_token(token)
-        samples_list = get_samples_list()
-        unet_model.show_predicted_segmentations(samples_list, slice_to_plot, cmap='gray', norm=None)
-        return {"message": "Predicted segmentations displayed"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# # Endpoint to show predicted segmented images
+# @app.post("/showPredictSegmented/")
+# async def show_predicted_segmentations_api(samples_list: list, slice_to_plot: int, token: str = Depends(oauth2_scheme)):
+#     try:
+#         decode_token(token)
+#         samples_list = get_samples_list()
+#         unet_model.show_predicted_segmentations(samples_list, slice_to_plot, cmap='gray', norm=None)
+#         return {"message": "Predicted segmentations displayed"}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 
 # Endpoint to evaluate the model on test data
@@ -99,57 +105,22 @@ async def evaluate_model_api(token: str = Depends(oauth2_scheme)):
     try:
         # Evaluate the model
         decode_token(token)
-        results, descriptions = unet_model.evaluate(test_generator)
-        print(results)
-        # Create HTML table
-        table_html = """
-        <html>
-            <head>
-                <style>
-                    table, th, td {
-                        border: 1px solid black;
-                        border-collapse: collapse;
-                        padding: 10px;
-                    }
-                    th {
-                        background-color: #f2f2f2;
-                    }
-                </style>
-            </head>
-            <body>
-                <table style="color:white;">
-                    <tr>
-                        <th>Metric</th>
-                        <th>Value</th>
-                    </tr>
-        """
-
-        # Loop over the results and descriptions to populate the table
-        for metric, description in zip(results, descriptions):
-            table_html += f"<tr><td>{description}</td><td>{round(metric, 4)}</td></tr>"
-
-        # Close the table and HTML tags
-        table_html += """
-                </table>
-            </body>
-        </html>
-        """
-        print(table_html)
-        # Return the HTML content
-        return table_html
+        metrics_dict = unet_model.evaluate(test_generator)
+        print(metrics_dict)
+        return metrics_dict
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # Endpoint to predict brain segmentation from image file path
-@app.post("/predict/")
-async def predict(case_path: str, case: str, token: str = Depends(oauth2_scheme)):
-    try:
-        username = decode_token(token)
-        prediction = unet_model.predictByPath(case_path, case)  # Call method using the instance
-        return {"prediction": prediction.tolist()}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/predict/")
+# async def predict(case_path: str, case: str, token: str = Depends(oauth2_scheme)):
+#     try:
+#         username = decode_token(token)
+#         prediction = unet_model.predictByPath(case_path, case)  # Call method using the instance
+#         return {"prediction": prediction.tolist()}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 # Endpoint to show drift (placeholder)
 @app.get("/showdrift/")
@@ -162,8 +133,8 @@ async def show_drift(token: str = Depends(oauth2_scheme)):
     
     try:
         # report_html_path = "custom_report.html"
-        report_html_path = DATASET_BASE_PATH + "drift_report.html"
-
+        report_html_path = DRIFT_BASE_PATH + "drift_seg_report.html"
+        print(report_html_path)
     # Check if the file exists
         if os.path.exists(report_html_path):
             # Read the HTML file and return as a response
@@ -179,3 +150,64 @@ async def show_drift(token: str = Depends(oauth2_scheme)):
         
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post("/predictbypath/")
+async def predict(flair: UploadFile = File(...), t1ce: UploadFile = File(...)):
+    try:
+        # Save and process FLAIR and T1CE files separately
+        flair_file_path = f"{flair.filename}"
+        t1ce_file_path = f"{t1ce.filename}"
+
+        with open(flair_file_path, "wb") as f:
+            f.write(await flair.read())
+        
+        with open(t1ce_file_path, "wb") as f:
+            f.write(await t1ce.read())
+
+        # Call the prediction method with the paths to both files
+        prediction = unet_model.predictFromFiles(flair_file_path, t1ce_file_path)
+
+        # Return the prediction as a list (to handle numpy arrays)
+        return {"prediction": prediction.tolist()}
+    
+    except Exception as e:
+        # If any error occurs, raise an HTTP exception with the error details
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+@app.post("/showPredictSegmented/")
+async def show_predicted_segmentations_api(files: List[UploadFile] = File(...)):
+    try:
+        # Check if exactly two files are uploaded
+        if len(files) != 2:
+            raise HTTPException(status_code=400, detail="Please upload exactly two files.")
+
+        # Initialize variables to store file paths for flair and t1ce images
+        flair_file_path = None
+        t1ce_file_path = None
+
+        # Iterate over the uploaded files and verify their filenames
+        for file in files:
+            if file.filename.endswith("_flair.nii"):
+                flair_file_path = f"{file.filename}"
+                with open(flair_file_path, "wb") as f:
+                    content = await file.read()
+                    f.write(content)
+            elif file.filename.endswith("_t1ce.nii"):
+                t1ce_file_path = f"{file.filename}"
+                with open(t1ce_file_path, "wb") as f:
+                    content = await file.read()
+                    f.write(content)
+            else:
+                raise HTTPException(status_code=400, detail="File names must end with '_flair.nii' and '_t1ce.nii'.")
+
+        # Ensure both flair and t1ce files were uploaded
+        if not flair_file_path or not t1ce_file_path:
+            raise HTTPException(status_code=400, detail="Both _flair.nii and _t1ce.nii files must be provided.")
+
+        # Call the prediction method with the paths to both files
+        unet_model.show_predicted_segmentations(flair_file_path, t1ce_file_path, 60)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    

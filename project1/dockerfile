@@ -14,8 +14,8 @@ RUN pip install --upgrade -r requirements.txt
 COPY /backend/app/ .
 COPY /frontend/ .
 COPY /dataops/ .
-# COPY /dataops/.dvc .dvc
-# COPY .git .git
+COPY /dataops/.dvc .dvc
+COPY .git .git
 
 # Pull the DVC dataset
 RUN dvc pull
