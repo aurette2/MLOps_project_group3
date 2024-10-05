@@ -20,7 +20,7 @@ from tensorflow.keras.optimizers import *
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, TensorBoard
 
 from metrics import dice_coef, precision, sensitivity, specificity, dice_coef_necrotic, dice_coef_edema, dice_coef_enhancing
-
+import streamlit as st
 load_dotenv()
 # Get the base directory from the .env file
 MODELS_DIR = os.getenv('MODELS_DIR')
@@ -311,10 +311,12 @@ class Unet:
                         "Specificity", "Dice coef Necrotic", "Dice coef Edema", "Dice coef Enhancing"]
         print("\nModel evaluation on the test set:")
         print("==================================")
+        metrics_dict = {}
         for metric, description in zip(results, descriptions):
             print(f"{description} : {round(metric, 4)}")
+            metrics_dict[description] = round(metric, 4)
         
-        return results, descriptions
+        return metrics_dict
 
 
     def predictFromFiles(self, flair_file_path: str, t1ce_file_path: str):
@@ -343,48 +345,82 @@ class Unet:
 
         return p
 
-    
-    
-    def showPredictsFromFile(self,  p, origImage, start_slice=60):
-        """Visualizes the predicted segmentation for a given uploaded .nii file."""
-        
-        # Load the original flair image from the uploaded file
-        # origImage = nib.load(file_path).get_fdata()
-
-        # Get the prediction from the file
-        # p = self.predictFromFile(file_path)  # Call the prediction function
-
-        # Separate the predicted classes
+    def showPredictsFromFile(self, p, origImage, start_slice=60):
         core, edema, enhancing = p[:,:,:,1], p[:,:,:,2], p[:,:,:,3]
-
-        # Set up the plot layout
-        plt.figure(figsize=(18, 50))
-        f, axarr = plt.subplots(1, 6, figsize=(18, 50))
+        fig, axarr = plt.subplots(1, 6, figsize=(18, 30))
 
         # Show the original image slice
         for i in range(6):
-            axarr[i].imshow(cv2.resize(origImage[:,:,start_slice+VOLUME_START_AT], (self.img_size, self.img_size)), cmap="gray", interpolation='none')
-           
+            axarr[i].imshow(cv2.resize(origImage[:,:,start_slice], (self.img_size, self.img_size)), cmap="gray", interpolation='none')
 
         # Titles and images for each subplot
-        axarr[0].title.set_text('Original image flair')
-
-
-        # Display the predictions
+        axarr[0].set_title('Original image flair')
         axarr[2].imshow(p[start_slice,:,:,1:4], cmap="Reds", alpha=0.3)
-        axarr[2].title.set_text('All classes predicted')
-
+        axarr[2].set_title('All classes predicted')
         axarr[3].imshow(edema[start_slice,:,:], cmap="OrRd", alpha=0.3)
-        axarr[3].title.set_text('Edema predicted')
-
+        axarr[3].set_title('Edema predicted')
         axarr[4].imshow(core[start_slice,:,:], cmap="OrRd", alpha=0.3)
-        axarr[4].title.set_text('Core predicted')
-
+        axarr[4].set_title('Core predicted')
         axarr[5].imshow(enhancing[start_slice,:,:], cmap="OrRd", alpha=0.3)
-        axarr[5].title.set_text('Enhancing predicted')
+        axarr[5].set_title('Enhancing predicted')
 
-        # Show the plot
-        plt.show()
+        # Render the plot in Streamlit
+        st.pyplot(fig)
+    
+    # def showPredictsFromFile(self,  p, origImage, start_slice=60):
+    #     """Visualizes the predicted segmentation for a given uploaded .nii file."""
+        
+    #     # Load the original flair image from the uploaded file
+    #     # origImage = nib.load(file_path).get_fdata()
+
+    #     # Get the prediction from the file
+    #     # p = self.predictFromFile(file_path)  # Call the prediction function
+
+    #     # Separate the predicted classes
+    #     core, edema, enhancing = p[:,:,:,1], p[:,:,:,2], p[:,:,:,3]
+
+    #     # Set up the plot layout
+    #     plt.figure(figsize=(18, 30))
+    #     fig, axarr = plt.subplots(1, 6, figsize=(18, 30))
+
+    #     # # Show the original image slice
+    #     # for i in range(6):
+    #     #     axarr[i].imshow(cv2.resize(origImage[:,:,start_slice+VOLUME_START_AT], (self.img_size, self.img_size)), cmap="gray", interpolation='none')
+    #     # # Titles and images for each subplot
+    #     # axarr[0].title.set_text('Original image flair')
+
+
+    #     # # Display the predictions
+    #     # axarr[2].imshow(p[start_slice,:,:,1:4], cmap="Reds", alpha=0.3)
+    #     # axarr[2].title.set_text('All classes predicted')
+
+    #     # axarr[3].imshow(edema[start_slice,:,:], cmap="OrRd", alpha=0.3)
+    #     # axarr[3].title.set_text('Edema predicted')
+
+    #     # axarr[4].imshow(core[start_slice,:,:], cmap="OrRd", alpha=0.3)
+    #     # axarr[4].title.set_text('Core predicted')
+
+    #     # axarr[5].imshow(enhancing[start_slice,:,:], cmap="OrRd", alpha=0.3)
+    #     # axarr[5].title.set_text('Enhancing predicted')
+    #     # # Show the plot
+    #     # plt.show()
+    #     # Show the original image slice
+    #     for i in range(6):
+    #         axarr[i].imshow(cv2.resize(origImage[:,:,start_slice], (self.img_size, self.img_size)), cmap="gray", interpolation='none')
+
+    #     # Titles and images for each subplot
+    #     axarr[0].title.set_text('Original image flair')
+    #     axarr[2].imshow(p[start_slice,:,:,1:4], cmap="Reds", alpha=0.3)
+    #     axarr[2].title.set_text('All classes predicted')
+    #     axarr[3].imshow(edema[start_slice,:,:], cmap="OrRd", alpha=0.3)
+    #     axarr[3].title.set_text('Edema predicted')
+    #     axarr[4].imshow(core[start_slice,:,:], cmap="OrRd", alpha=0.3)
+    #     axarr[4].title.set_text('Core predicted')
+    #     axarr[5].imshow(enhancing[start_slice,:,:], cmap="OrRd", alpha=0.3)
+    #     axarr[5].title.set_text('Enhancing predicted')
+
+    #     # Render the plot in Streamlit
+    #     st.pyplot(fig)
 
     def predict_segmentation(self, flair_path, t1ce_path, volume_slices=VOLUME_SLICES, volume_start_at=VOLUME_START_AT):
         """_
@@ -400,47 +436,95 @@ class Unet:
         return self.model.predict(X / np.max(X), verbose=1)
     
     
+    # def show_predicted_segmentations(self, flair_path, t1ce_path, slice_to_plot, cmap='gray', norm=None):
+        
+    #     """
+    #     Show a comparison between the ground truth and the predicted segmentation for a random sample.
+    #     """
+
+    #     predicted_seg = self.predict_segmentation(flair_path, t1ce_path,)
+        
+    #     all_classes = predicted_seg[slice_to_plot, :, :, 1:4]  # Core, Edema, Enhancing (excluding class 0)
+    #     background = predicted_seg[slice_to_plot, :, :, 0]     # Background (class 0)
+    #     core = predicted_seg[slice_to_plot, :, :, 1]           # Core (class 1)
+    #     edema = predicted_seg[slice_to_plot, :, :, 2]          # Edema (class 2)
+    #     enhancing = predicted_seg[slice_to_plot, :, :, 3]      # Enhancing (class 3)
+
+    #     plt.figure(figsize=(25, 20))
+    #     fig, axes = plt.subplots(1, 6, figsize=(25, 20))
+
+    #     # axes[1].imshow(all_classes, cmap=cmap, norm=norm)
+    #     # axes[1].set_title('Predicted Segmentation - All Classes')
+
+    #     # # Plot predicted segmentation for background
+    #     # axes[2].imshow(background)
+    #     # axes[2].set_title('Predicted Segmentation - Not Tumor')
+
+    #     # # Plot predicted segmentation for core
+    #     # axes[3].imshow(core)
+    #     # axes[3].set_title('Predicted Segmentation - Necrotic/Core')
+
+    #     # # Plot predicted segmentation for edema
+    #     # axes[4].imshow(edema)
+    #     # axes[4].set_title('Predicted Segmentation - Edema')
+
+    #     # # Plot predicted segmentation for enhancing
+    #     # axes[5].imshow(enhancing)
+    #     # axes[5].set_title('Predicted Segmentation - Enhancing')
+        
+    #     # # Adjust layout to add spacing between subplots
+    #     # plt.subplots_adjust(wspace=0.8)
+
+    #     # # Show the plot
+    #     # plt.show()
+    #     axes[1].imshow(all_classes, cmap=cmap, norm=norm)
+    #     axes[1].set_title('Predicted Segmentation - All Classes')
+
+    #     # Plot predicted segmentation for background
+    #     axes[2].imshow(background)
+    #     axes[2].set_title('Predicted Segmentation - Not Tumor')
+
+    #     # Plot predicted segmentation for core
+    #     axes[3].imshow(core)
+    #     axes[3].set_title('Predicted Segmentation - Necrotic/Core')
+
+    #     # Plot predicted segmentation for edema
+    #     axes[4].imshow(edema)
+    #     axes[4].set_title('Predicted Segmentation - Edema')
+
+    #     # Plot predicted segmentation for enhancing
+    #     axes[5].imshow(enhancing)
+    #     axes[5].set_title('Predicted Segmentation - Enhancing')
+
+    #     # Adjust layout to add spacing between subplots
+    #     plt.subplots_adjust(wspace=0.8)
+
+    #     # Render the plot in Streamlit
+    #     st.pyplot(fig)
+
     def show_predicted_segmentations(self, flair_path, t1ce_path, slice_to_plot, cmap='gray', norm=None):
-        
-        """
-        Show a comparison between the ground truth and the predicted segmentation for a random sample.
-        """
-
-        predicted_seg = self.predict_segmentation(flair_path, t1ce_path,)
-        
-        all_classes = predicted_seg[slice_to_plot, :, :, 1:4]  # Core, Edema, Enhancing (excluding class 0)
-        background = predicted_seg[slice_to_plot, :, :, 0]     # Background (class 0)
-        core = predicted_seg[slice_to_plot, :, :, 1]           # Core (class 1)
-        edema = predicted_seg[slice_to_plot, :, :, 2]          # Edema (class 2)
-        enhancing = predicted_seg[slice_to_plot, :, :, 3]      # Enhancing (class 3)
-
+        predicted_seg = self.predict_segmentation(flair_path, t1ce_path)
+        all_classes = predicted_seg[slice_to_plot, :, :, 1:4]
+        background = predicted_seg[slice_to_plot, :, :, 0]
+        core = predicted_seg[slice_to_plot, :, :, 1]
+        edema = predicted_seg[slice_to_plot, :, :, 2]
+        enhancing = predicted_seg[slice_to_plot, :, :, 3]
 
         fig, axes = plt.subplots(1, 6, figsize=(25, 20))
 
         axes[1].imshow(all_classes, cmap=cmap, norm=norm)
         axes[1].set_title('Predicted Segmentation - All Classes')
-
-        # Plot predicted segmentation for background
         axes[2].imshow(background)
         axes[2].set_title('Predicted Segmentation - Not Tumor')
-
-        # Plot predicted segmentation for core
         axes[3].imshow(core)
         axes[3].set_title('Predicted Segmentation - Necrotic/Core')
-
-        # Plot predicted segmentation for edema
         axes[4].imshow(edema)
         axes[4].set_title('Predicted Segmentation - Edema')
-
-        # Plot predicted segmentation for enhancing
         axes[5].imshow(enhancing)
         axes[5].set_title('Predicted Segmentation - Enhancing')
-        
-        # Adjust layout to add spacing between subplots
-        plt.subplots_adjust(wspace=0.8)
 
-        # Show the plot
-        plt.show()
+        plt.subplots_adjust(wspace=0.8)
+        st.pyplot(fig)
     
 
 

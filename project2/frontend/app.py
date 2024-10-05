@@ -3,6 +3,7 @@ import requests
 import streamlit.components.v1 as components
 from PIL import Image
 import os
+import pandas as pd
 
 # Base URL of FastAPI backend
 BASE_URL = "http://localhost:8000"  # Update with your backend URL
@@ -46,17 +47,20 @@ def show_drift():
     headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
     response = requests.get(f"{BASE_URL}/showdrift/", headers=headers)
     if response.status_code == 200:
-        st.success(response.json().get("message"))
+       st.components.v1.html(response.text, height=1000, scrolling=True)
     else:
         st.error("Error in fetching drift status.")
 
-# Function to send authenticated request
-def authenticated_request(endpoint, method="GET", params=None, json=None):
+# Function to send authenticated request, updated to support file uploads and query parameters
+def authenticated_request(endpoint, method="GET", params=None, json=None, files=None):
     headers = {"Authorization": f"Bearer {st.session_state.access_token}"}
     if method == "GET":
         response = requests.get(f"{BASE_URL}{endpoint}", headers=headers, params=params)
     elif method == "POST":
-        response = requests.post(f"{BASE_URL}{endpoint}", headers=headers, json=json)
+        if files:
+            response = requests.post(f"{BASE_URL}{endpoint}", headers=headers, files=files, params=params)
+        else:
+            response = requests.post(f"{BASE_URL}{endpoint}", headers=headers, json=json, params=params)
     return response
 
 # ---- MAIN APP LOGIC ----
@@ -102,33 +106,34 @@ if is_authenticated() and st.session_state.is_logged_in:
 
             # Prediction
             if st.button("View Predictions"):
-                files = [
-                    ("files", (uploaded_flair.name, uploaded_flair, uploaded_flair.type)),
-                    ("files", (uploaded_t1ce.name, uploaded_t1ce, uploaded_t1ce.type))
-                ]
-                response = authenticated_request("/predictbypath/", method="POST", files=files)
-                if response.status_code == 200:
-                    st.success("Prediction successful")
-                    prediction = response.json().get("prediction", "No prediction returned.")
-                    st.write(f"**Prediction**: {prediction}")
-                else:
-                    st.error(f"Failed to predict segmentation: {response.text}")
+                with st.spinner("Generating segmentation plot..."):
+                    files = {
+                        "flair": (uploaded_flair.name, uploaded_flair, uploaded_flair.type),
+                        "t1ce": (uploaded_t1ce.name, uploaded_t1ce, uploaded_t1ce.type)
+                    }
+                    response = authenticated_request("/predictbypath/", method="POST", files=files)
+                    if response.status_code == 200:
+                        st.success("Prediction successful")
+                        # You can handle displaying the prediction results here
+                    else:
+                        st.error(f"Failed to predict segmentation: {response.text}")
 
             # Display Segmented Predictions
             st.subheader("View Predicted Segmentations")
             try:
                 slice_to_plot = st.slider("Select Slice to Plot", min_value=0, max_value=100, value=60)
                 if st.button("Show Predicted Segmentations"):
-                    files = [
-                        ("files", (uploaded_flair.name, uploaded_flair, uploaded_flair.type)),
-                        ("files", (uploaded_t1ce.name, uploaded_t1ce, uploaded_t1ce.type))
-                    ]
-                    show_segmented_response = authenticated_request("/showPredictSegmented/", method="POST", files=files)
-                    if show_segmented_response.status_code == 200:
-                        st.success("Predicted segmentations displayed")
-                        # You may want to show images or segmented results here
-                    else:
-                        st.error(f"Failed to show predicted segmentations: {show_segmented_response.text}")
+                    with st.spinner("Generating segmentation plot..."):
+                        files = [
+                            ("files", (uploaded_flair.name, uploaded_flair, uploaded_flair.type)),
+                            ("files", (uploaded_t1ce.name, uploaded_t1ce, uploaded_t1ce.type))
+                        ]
+                        show_segmented_response = authenticated_request("/showPredictSegmented/", method="POST", files=files, params={"slice_to_plot": slice_to_plot})
+                        if show_segmented_response.status_code == 200:
+                            st.success("Predicted segmentations displayed")
+                            # You may want to show images or segmented results here
+                        else:
+                            st.error(f"Failed to show predicted segmentations: {show_segmented_response.text}")
             except ValueError:
                 st.error("Please provide a valid list of samples")
         else:
@@ -143,7 +148,14 @@ if is_authenticated() and st.session_state.is_logged_in:
             response = authenticated_request("/evaluate/", method="POST")
             if response.status_code == 200:
                 st.subheader("Model Evaluation Metrics")
-                components.html(response.text.replace("<table>", '<table style="color:white;">'), height=400, scrolling=True)
+                # Assuming response.text contains your JSON-like string
+                response_json = response.json()  # Convert JSON string to a dictionary
+
+                # Convert dictionary to DataFrame
+                df = pd.DataFrame(list(response_json.items()), columns=["Metric", "Value"],index=None)
+
+                # Display the DataFrame as a table
+                st.table(df.style.hide(axis='index'))
             else:
                 st.error("Failed to evaluate model")
 

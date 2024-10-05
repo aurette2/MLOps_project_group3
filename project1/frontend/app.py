@@ -241,6 +241,7 @@ if st.session_state.screenstate["generate_reports"]:
 
                             # Display the formatted report
                             st.success("Report generated successfully!")
+                            st.write(f"**Report**:\n")
                             
                             if indications:
                                 st.markdown(f"**Indication**:\n{indications}")
@@ -251,7 +252,6 @@ if st.session_state.screenstate["generate_reports"]:
                             if impressions:
                                 st.markdown(f"**Impression**:\n{impressions}")
                         # st.success("Report generated successfully!")
-                        # st.write(f"**Report**:\n {report}")
                     else:
                         st.error(f"Error generating the report. Status code: {response.status_code}")
                         st.write(response.text)  # Print the error details

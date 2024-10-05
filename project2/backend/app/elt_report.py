@@ -9,8 +9,8 @@ from evidently.report import Report
 from evidently.metric_preset import DataDriftPreset, DataQualityPreset
 # from alibi_detect.cd import KSDrift, ChiSquareDrift
 
-from app.load_data import Datasource
-from app.eda import DataGenerator
+from load_data import Datasource
+from eda import DataGenerator
 
 load_dotenv()
 DATASET_BASE_PATH=os.getenv("DATASET_BASE_PATH")

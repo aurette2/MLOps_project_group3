@@ -14,8 +14,8 @@ load_dotenv()
 # Get the secret key
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY is not set in environment variables")
+# if not SECRET_KEY:
+#     raise ValueError("SECRET_KEY is not set in environment variables")
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
