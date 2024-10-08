@@ -4,21 +4,27 @@ FROM python:3.12
 # Set the working directory in the container
 WORKDIR /app
 
+# Copy the requirements file into the container
+COPY /requirements.txt .
+
 # Install necessary system dependencies, including libGL for OpenCV
 RUN apt-get update && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0
     
-# Copy the requirements file into the container
-COPY backend/requirements.txt .
-
 # Install the required Python packages
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
+RUN pip install --upgrade -r requirements.txt
 
+RUN git init
+# RUN rm -rf .git
 # Copy the entire project directory into the container
-COPY /backend/app /app
+COPY /backend/app/ .
+COPY /frontend/ .
+COPY /dataops/ .
+COPY /dataops/.dvc .dvc
+# COPY ../.git .git
 
-# Pull the dataset tracked by DVC
+# Pull the DVC dataset
 RUN dvc pull
 
 # Expose the ports for FastAPI (8000) and Streamlit (8501)
@@ -29,13 +35,23 @@ EXPOSE 8501
 ENV STREAMLIT_SERVER_PORT=8501
 ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 
-# Copy the .env file to the container
-COPY /backend/.env .env
-COPY /backend/app/starter_code.sh /app
-COPY /frontend/app.py /app
+# Generate a SECRET_KEY and export it
+RUN SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))") && \
+    export SECRET_KEY && \
+    echo "Generated SECRET_KEY: $SECRET_KEY" && \
+    echo "SECRET_KEY=$SECRET_KEY" > /tmp/secret_key.env
 
-# Make the script executable
-RUN chmod +x /app/starter_code.sh
+# Use the shell form of ENV to source the SECRET_KEY from the generated file
+RUN . /tmp/secret_key.env && echo $SECRET_KEY && \
+    echo "SECRET_KEY=$SECRET_KEY" >> /etc/environment
 
-# Run the FastAPI app using the built-in `fastapi run` command
-CMD ["sh", "-c", "uvicorn controller:app --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run app.py --server.address 0.0.0.0 --server.port 8501"]
+# Set the SECRET_KEY as an environment variable
+ENV SECRET_KEY=$SECRET_KEY
+ENV MODELS_DIR="./"
+ENV DATASET_BASE_PATH="./brain_data/BraTS2020/BraTS2020_TrainingData/MICCAI_BraTS2020_TrainingData"
+
+# Optional: Clean up the temporary file
+RUN rm -f /tmp/secret_key.env
+
+# CMD /bin/bash -c "fastapi run controller.py --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run test.py --server.address 0.0.0.0 --server.port 8501"
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000 & sleep 5 && streamlit run app.py --server.address 0.0.0.0 --server.port 8501"]

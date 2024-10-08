@@ -1,6 +1,6 @@
 outs:
-- md5: 54258576a8aa6f94d7140661cc5de628.dir
-  size: 42804718350
-  nfiles: 2353
+- md5: 1c77576597a76ed34d2d6f14f6f7b970.dir
+  size: 807361192
+  nfiles: 56
   hash: md5
   path: brain_data

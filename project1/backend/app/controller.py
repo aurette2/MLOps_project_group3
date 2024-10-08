@@ -125,31 +125,31 @@ async def generate_report(file: UploadFile = File(...), indication: str = None, 
 async def show_drift(token: str = Depends(oauth2_scheme)):
     payload = decode_token(token)
     role = payload.get("role")
-    
+    print(role)
     if role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough permissions")
-    
-    try:
-        # report_html_path = "custom_report.html"
-        
-        report_html_path = DATA_FOR_DRIFT_PATH + "drift_report.html"
-
-        # Check if the file exists
-        if os.path.exists(report_html_path):
-            # Read the HTML file and return as a response
-            with open(report_html_path, "r") as f:
-                html_content = f.read()
-            return HTMLResponse(content=html_content)
-        else:
-            # Generate It from data / This should take time
+    else:
+        try:
+            # report_html_path = "custom_report.html"
             
-            generate_drift_report()
-            with open(report_html_path, "r") as f:
-                html_content = f.read()
-            return HTMLResponse(content=html_content)
-        
-    except Exception as e:
-        return {"error": str(e)}
+            report_html_path = DATA_FOR_DRIFT_PATH + "drift_report.html"
+            print(report_html_path)
+            # Check if the file exists
+            if os.path.exists(report_html_path):
+                # Read the HTML file and return as a response
+                with open(report_html_path, "r") as f:
+                    html_content = f.read()
+                return HTMLResponse(content=html_content)
+            else:
+                # Generate It from data / This should take time
+                
+                generate_drift_report()
+                with open(report_html_path, "r") as f:
+                    html_content = f.read()
+                return HTMLResponse(content=html_content)
+            
+        except Exception as e:
+            return {"error": str(e)}
 
 
 @app.post('/vqa')
